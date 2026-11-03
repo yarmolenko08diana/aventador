@@ -96,7 +96,7 @@ export default function Models() {
       {task === "detection" && rows.length > 0 && <RocChart rows={rows} />}
 
       {selected && (
-        <div className="grid gap-6 lg:grid-cols-2">
+        <div className={`grid gap-6 ${task === "detection" ? "lg:grid-cols-2" : ""}`}>
           <ConfusionCard modelId={selected.model_id} />
           <ReliabilityCard modelId={selected.model_id} title={ALGO_TITLE[selected.algorithm]} />
         </div>
@@ -260,7 +260,7 @@ function Matrix({ cm }: { cm: ConfusionMatrix }) {
               <th className="p-1 text-left text-xs font-normal text-slate-500">истина ↓ прогноз →</th>
               {labels.map((l) => (
                 <th key={l} className="p-1 font-medium text-slate-600">
-                  <div className={small ? "h-20 w-4 whitespace-nowrap [writing-mode:vertical-rl] rotate-180" : ""}>{l}</div>
+                  <div className={small ? "mx-auto h-24 w-5 whitespace-nowrap [writing-mode:vertical-rl] rotate-180" : ""}>{l}</div>
                 </th>
               ))}
             </tr>
@@ -278,10 +278,10 @@ function Matrix({ cm }: { cm: ConfusionMatrix }) {
                       <td
                         key={j}
                         title={`${labels[i]} → ${labels[j]}: ${v} (${pct(share)} строки)`}
-                        className={`border border-white text-center ${small ? "h-5 w-5" : "h-12 w-16"}`}
+                        className={`border border-white text-center ${small ? "h-7 w-8 text-[10px]" : "h-12 w-16"}`}
                         style={{ background: v ? bg : "#f8fafc", color: share > 0.6 ? "white" : undefined }}
                       >
-                        {small ? "" : v}
+                        {v || ""}
                       </td>
                     );
                   })}
@@ -293,7 +293,7 @@ function Matrix({ cm }: { cm: ConfusionMatrix }) {
       </div>
       <p className="mt-2 text-xs text-slate-500">
         {cm.note}. Цвет — доля строки: зелёный на диагонали — верно, красный вне её — ошибки.
-        {small && " Число файлов — во всплывающей подсказке."}
+        {small && " Наведите на клетку, чтобы увидеть, какие семейства перепутаны и сколько раз."}
       </p>
     </div>
   );
