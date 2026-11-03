@@ -1,0 +1,22 @@
+# Этап 0: только база данных.
+# Сервисы api, worker и frontend добавляются на этапах 6–7 (раздел 5 ТЗ).
+name: malscan
+
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      # Порт открыт только на localhost, снаружи БД не видна
+      - "127.0.0.1:${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:

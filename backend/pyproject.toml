@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "malscan-backend"
+version = "0.0.1"
+description = "API (FastAPI) и worker анализа"
+requires-python = ">=3.11"
+# fastapi, sqlalchemy, alembic, reportlab добавляются на этапе 6
+dependencies = [
+    "malcore",
+    "psycopg[binary]>=3.1",
+]
+
+[tool.setuptools.packages.find]
+include = ["app*", "worker*"]

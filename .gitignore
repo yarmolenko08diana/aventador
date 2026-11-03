@@ -1,0 +1,27 @@
+# Данные и артефакты не коммитим: они большие и воспроизводятся скриптами
+data/raw/*
+data/processed/*
+data/splits/*
+artifacts/models/*
+!data/**/.gitkeep
+!artifacts/models/.gitkeep
+
+# Образцы и карантин никогда не попадают в git
+quarantine/
+*.bin
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.ipynb_checkpoints/
+
+# Node
+node_modules/
+frontend/dist/
+
+# Окружение
+.env

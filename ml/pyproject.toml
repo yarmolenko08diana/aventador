@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mltrain"
+version = "0.0.1"
+description = "Подготовка данных BODMAS, обучение и оценка моделей"
+requires-python = ">=3.11"
+# scikit-learn, lightgbm и torch добавляются на этапе 4
+dependencies = [
+    "malcore",
+    "numpy>=1.26",
+    "pandas>=2.1",
+    "pyyaml>=6.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
