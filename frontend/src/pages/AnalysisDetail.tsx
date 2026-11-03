@@ -37,6 +37,12 @@ export default function AnalysisDetail() {
         </div>
         <div className="flex items-center gap-3">
           <StatusBadge status={a.status} />
+          {done && (
+            // Обычная ссылка: браузер сам скачает файл report-<sha256>.pdf (имя задаёт API)
+            <a className="btn" href={api.reportUrl(a.id)} download>
+              Скачать PDF
+            </a>
+          )}
           {finished(a) && (
             <button className="btn-secondary" disabled={rerun.isPending} onClick={() => rerun.mutate(a.id)}>
               Повторить анализ

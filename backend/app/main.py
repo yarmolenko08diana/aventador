@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func, select, text
 from sqlalchemy.orm import Session
 
-from app.api.v1 import alerts, analyses, dashboard, models, samples
+from app.api.v1 import alerts, analyses, dashboard, models, reports, samples
 from app.config import get_settings
 from app.db.models import ModelVersion
 from app.db.session import get_db
@@ -27,7 +27,7 @@ app = FastAPI(
 app.add_middleware(CORSMiddleware, allow_origins=get_settings().cors_origins, allow_methods=["*"], allow_headers=["*"])
 
 PREFIX = "/api/v1"
-for module in (samples, analyses, models, alerts, dashboard):
+for module in (samples, analyses, reports, models, alerts, dashboard):
     app.include_router(module.router, prefix=PREFIX)
 
 

@@ -7,7 +7,6 @@ name = "malscan-backend"
 version = "0.0.1"
 description = "API (FastAPI) и worker анализа"
 requires-python = ">=3.11"
-# reportlab добавляется на этапе 9 (PDF)
 dependencies = [
     "malcore",
     "psycopg[binary]>=3.1",
@@ -18,10 +17,15 @@ dependencies = [
     "pydantic-settings>=2.4",
     "python-multipart>=0.0.9",
     "pandas>=2.1",
+    "reportlab>=4.2",
 ]
 
 [project.optional-dependencies]
-test = ["pytest", "httpx"]
+test = ["pytest", "httpx", "pypdf>=4"]
 
 [tool.setuptools.packages.find]
 include = ["app*", "worker*"]
+
+[tool.setuptools.package-data]
+# шрифт DejaVu для кириллицы в PDF
+"app" = ["assets/fonts/*.ttf", "assets/fonts/*.txt"]

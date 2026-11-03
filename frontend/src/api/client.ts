@@ -61,6 +61,7 @@ export const api = {
   staticInfo: (id: number) => request<StaticInfo>(`/analyses/${id}/static`),
   indicators: (id: number) => request<Indicators>(`/analyses/${id}/indicators`),
   predictions: (id: number) => request<Prediction[]>(`/analyses/${id}/predictions`),
+  reportUrl: (id: number) => `${BASE}/analyses/${id}/report.pdf`,
   rerun: (id: number) => request<UploadResult>(`/analyses/${id}/rerun`, { method: "POST" }),
   dashboard: () => request<DashboardStats>("/dashboard/stats"),
   models: () => request<ModelInfo[]>("/models"),
