@@ -76,11 +76,18 @@ def _high_entropy_sections(info: dict) -> list[dict]:
     ]
 
 
+def _looks_like_version(parts: list[str]) -> bool:
+    """6.0.0.0, 1.1.0.14, 0.9.1.2 — номера версий, а не адреса. 8.8.8.8 и 1.1.1.1 остаются адресами."""
+    if parts[0] == "0" or parts.count("0") >= 2:
+        return True
+    return "0" in parts and all(p.isdigit() and int(p) <= 30 for p in parts)
+
+
 def _suspicious_ips(info: dict) -> list[str]:
     out = []
     for ip in info.get("strings", {}).get("ips", []):
         parts = ip.split(".")
-        if parts.count("0") >= 2 or parts[0] == "0":  # похоже на номер версии, например 6.0.0.0
+        if _looks_like_version(parts):
             continue
         try:
             addr = ipaddress.IPv4Address(ip)
@@ -203,6 +210,8 @@ def check_timestamp(info, now: float | None = None):
     now = time.time() if now is None else now
     if ts == 0:
         return {"reason": "время компиляции равно 0"}
+    if info.get("reproducible_build"):
+        return None  # у воспроизводимой сборки (Windows, /Brepro) поле — хеш, «будущая» дата нормальна
     if ts > now + 86400:
         return {"reason": "время компиляции в будущем", "compile_time": info.get("compile_time")}
     return None
@@ -266,7 +275,7 @@ RULES: list[Rule] = [
          "Часто это сайт разработчика или справки.", check_network),
     Rule("HDR_TIMESTAMP", "Странное время компиляции", "low", "structure",
          "Время компиляции равно нулю или находится в будущем: поле могли подделать.",
-         "Воспроизводимые сборки специально ставят фиксированное время.", check_timestamp),
+         "Поддельной дату может сделать и обычная сборка; файлы с записью REPRO (воспроизводимая сборка) не проверяются.", check_timestamp),
     Rule("HDR_CHECKSUM", "Контрольная сумма не совпадает", "low", "structure",
          "Контрольная сумма в заголовке заполнена, но не совпадает с вычисленной: файл мог быть изменён.",
          "Для обычных .exe поле часто не проверяется и может быть неточным.", check_checksum),

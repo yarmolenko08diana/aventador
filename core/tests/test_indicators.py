@@ -177,8 +177,9 @@ def test_shell_strings():
 def test_network_filters_benign_hosts_and_versions():
     assert "STR_NETWORK" in codes(with_strings(urls=["http://evil.example.net/a.exe"]))
     assert "STR_NETWORK" in codes(with_strings(ips=["185.10.20.30"]))
+    assert "STR_NETWORK" in codes(with_strings(ips=["8.8.8.8"]))
     benign = with_strings(urls=["http://schemas.microsoft.com/SMI/2005/WindowsSettings"],
-                          ips=["6.0.0.0", "127.0.0.1", "1.0.0.0"])
+                          ips=["6.0.0.0", "127.0.0.1", "1.0.0.0", "1.1.0.14"])
     assert "STR_NETWORK" not in codes(benign)
 
 
@@ -207,3 +208,21 @@ def test_network_survives_malformed_url():
     info = with_strings(urls=["http://[bad", "http://evil.example.net/x"])
     assert "STR_NETWORK" in codes(info)
     assert "STR_NETWORK" not in codes(with_strings(urls=["http://[bad"]))
+
+
+def test_timestamp_skipped_for_reproducible_build():
+    future = base_info(compile_timestamp=4_000_000_000)
+    assert "HDR_TIMESTAMP" in codes(future)
+    future["reproducible_build"] = True  # у /Brepro-сборок в поле лежит хеш
+    assert "HDR_TIMESTAMP" not in codes(future)
+    assert "HDR_TIMESTAMP" in codes(base_info(compile_timestamp=0, reproducible_build=True))
+
+
+def test_fp_report_on_fixtures(capsys):
+    from malcore.indicators import fp_report
+
+    fp_report.main([str(PE), "--limit", "0", "--top", "3"])
+    out = capsys.readouterr().out
+    assert "Разобрано PE: 25" in out
+    assert "PACK_KNOWN_SECTION: самые частые находки" in out
+    assert "Ошибки правил" not in out

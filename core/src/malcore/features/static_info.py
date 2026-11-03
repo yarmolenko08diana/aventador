@@ -22,6 +22,7 @@ IMAGE_SCN_MEM_EXECUTE = 0x20000000
 IMAGE_SCN_MEM_READ = 0x40000000
 IMAGE_SCN_MEM_WRITE = 0x80000000
 DEBUG_DIR, SECURITY_DIR = 6, 4
+DEBUG_TYPE_REPRO = 16
 
 _ASCII = re.compile(rb"[\x20-\x7e]{5,}")
 _UTF16 = re.compile(rb"(?:[\x20-\x7e]\x00){5,}")
@@ -146,6 +147,7 @@ def analyze(data: bytes) -> dict:
     overlay_offset = pe.get_overlay_data_start_offset()
     overlay = data[overlay_offset:] if overlay_offset else b""
     dirs = oh.DATA_DIRECTORY
+    debug_types = sorted({d.struct.Type for d in getattr(pe, "DIRECTORY_ENTRY_DEBUG", [])})
 
     info.update(
         {
@@ -170,6 +172,9 @@ def analyze(data: bytes) -> dict:
             "overlay_starts_with_mz": overlay[:2] == b"MZ",
             "has_signature": len(dirs) > SECURITY_DIR and dirs[SECURITY_DIR].Size > 0,
             "has_debug": len(dirs) > DEBUG_DIR and dirs[DEBUG_DIR].Size > 0,
+            "debug_types": debug_types,
+            # Запись IMAGE_DEBUG_TYPE_REPRO: сборка воспроизводимая, и в TimeDateStamp лежит хеш, а не дата
+            "reproducible_build": DEBUG_TYPE_REPRO in debug_types,
             "has_tls": hasattr(pe, "DIRECTORY_ENTRY_TLS"),
             "warnings": pe.get_warnings()[:20],
         }
