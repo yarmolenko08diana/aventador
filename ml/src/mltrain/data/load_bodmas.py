@@ -39,7 +39,8 @@ def build_meta(y: np.ndarray, metadata: pd.DataFrame, categories: pd.DataFrame) 
         {
             "row": np.arange(len(y)),
             "sha256": metadata["sha"].astype(str).str.lower(),
-            "timestamp": pd.to_datetime(metadata["timestamp"], utc=True),
+            # В файле встречаются строки и с поясом (+00:00), и без него; без пояса считаем UTC
+            "timestamp": pd.to_datetime(metadata["timestamp"], format="ISO8601", utc=True),
             "label": y.astype(np.int8),
             "family": metadata["family"],
         }

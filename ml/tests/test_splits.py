@@ -50,6 +50,15 @@ def test_build_meta_ok():
     assert meta.loc[meta["label"] == 1, "category"].notna().all()
 
 
+def test_build_meta_mixed_timestamp_formats():
+    # Как в реальном bodmas_metadata.csv: часть строк с поясом, часть без
+    _, y, metadata, categories = make_raw()
+    metadata.loc[0, "timestamp"] = "2007-01-01 08:46:39+00:00"
+    metadata.loc[1, "timestamp"] = "2016-10-30 15:59:55"
+    meta = build_meta(y, metadata, categories)
+    assert str(meta.loc[1, "timestamp"]) == "2016-10-30 15:59:55+00:00"
+
+
 def test_build_meta_detects_misaligned_rows():
     _, y, metadata, categories = make_raw()
     y = y[::-1].copy()  # порядок меток больше не совпадает с metadata
