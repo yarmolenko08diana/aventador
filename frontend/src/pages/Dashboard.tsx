@@ -96,7 +96,7 @@ export default function Dashboard() {
         </Card>
       </div>
 
-      <Card title="Последние анализы">
+      <Card title="Последние анализы" right={<Link to="/history" className="text-sm text-slate-600 hover:underline">Вся история →</Link>}>
         {recent.data && recent.data.items.length > 0 ? (
           <table className="w-full">
             <thead>

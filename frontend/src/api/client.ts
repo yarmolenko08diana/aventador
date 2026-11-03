@@ -1,6 +1,11 @@
 // Тонкий клиент к FastAPI. Все данные на страницах приходят отсюда — ничего не выдумывается на фронтенде.
 import type {
+  Alert,
   Analysis,
+  Comparison,
+  ConfusionMatrix,
+  Curves,
+  ModelInfo,
   AnalysisList,
   DashboardStats,
   DatasetExample,
@@ -58,4 +63,17 @@ export const api = {
   predictions: (id: number) => request<Prediction[]>(`/analyses/${id}/predictions`),
   rerun: (id: number) => request<UploadResult>(`/analyses/${id}/rerun`, { method: "POST" }),
   dashboard: () => request<DashboardStats>("/dashboard/stats"),
+  models: () => request<ModelInfo[]>("/models"),
+  comparison: (task: string) => request<Comparison>(`/models/comparison?task=${task}`),
+  confusion: (modelId: number) => request<ConfusionMatrix>(`/models/${modelId}/confusion-matrix`),
+  curves: (modelId: number) => request<Curves>(`/models/${modelId}/curves`),
+  alerts: (unread = false) => request<Alert[]>(`/alerts?limit=200${unread ? "&unread=true" : ""}`),
+  unreadAlerts: () => request<{ unread: number }>("/alerts/unread-count"),
+  markAlert: (id: number, isRead: boolean) =>
+    request<Alert>(`/alerts/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ is_read: isRead }),
+    }),
+  markAllAlerts: () => request<{ marked: number }>("/alerts/read-all", { method: "POST" }),
 };

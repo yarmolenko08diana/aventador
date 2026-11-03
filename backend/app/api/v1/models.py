@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import json
+from pathlib import Path
+
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import select
 from sqlalchemy.orm import Session
@@ -53,3 +56,35 @@ def confusion(model_id: int, db: Session = Depends(get_db)) -> dict:
     return {"model_id": mv.id, "task": mv.task, "algorithm": mv.algorithm, "classes": mv.classes,
             "matrix": mv.evaluations[0].confusion_matrix,
             "note": "строки — истина, столбцы — прогноз" + (", порог malicious" if mv.task == "detection" else "")}
+
+
+def _downsample(fpr: list[float], tpr: list[float], max_points: int = 1000) -> dict:
+    """Прореживает ROC-кривую для графика; первая и последняя точки сохраняются."""
+    n = len(fpr)
+    if n <= max_points:
+        return {"fpr": fpr, "tpr": tpr}
+    step = (n - 1) / (max_points - 1)
+    idx = sorted({round(i * step) for i in range(max_points)})
+    return {"fpr": [fpr[i] for i in idx], "tpr": [tpr[i] for i in idx]}
+
+
+@router.get("/{model_id}/curves")
+def curves(model_id: int, db: Session = Depends(get_db)) -> dict:
+    """ROC-кривая (для обнаружения) и диаграмма надёжности из evaluation.json этой версии модели.
+
+    Файл берётся из папки модели и принимается, только если он оценивал именно эту версию
+    (manifest_sha256 в evaluation.json совпадает с хешем, записанным в БД).
+    """
+    mv = db.get(ModelVersion, model_id)
+    if mv is None:
+        raise HTTPException(404, "Модель не найдена")
+    path = Path(mv.artifact_path) / "evaluation.json"
+    if not path.exists():
+        raise HTTPException(404, "У модели нет оценки на тесте")
+    ev = json.loads(path.read_text(encoding="utf-8"))
+    if ev.get("manifest_sha256") != mv.artifact_sha256:
+        raise HTTPException(409, "evaluation.json относится к другой версии модели")
+    roc = ev.get("roc_curve")
+    return {"model_id": mv.id, "task": mv.task, "algorithm": mv.algorithm,
+            "roc_auc": ev.get("roc_auc"), "roc": _downsample(roc["fpr"], roc["tpr"]) if roc else None,
+            "reliability": ev.get("reliability", []), "ece": ev.get("ece")}

@@ -120,3 +120,73 @@ export interface DatasetExample {
   label: string;
   family: string | null;
 }
+
+export interface ModelInfo {
+  id: number;
+  task: Task;
+  algorithm: Algorithm;
+  version: string;
+  feature_version: string;
+  dataset: string;
+  split_strategy: string;
+  classes: string[];
+  thresholds: Record<string, number>;
+  hyperparameters: Record<string, unknown>;
+  validation: Record<string, unknown>;
+  trained_at: string;
+  is_active: boolean;
+  is_final: boolean;
+}
+
+export interface TestMetrics {
+  split: string;
+  accuracy: number | null;
+  precision_macro: number | null;
+  recall_macro: number | null;
+  f1_macro: number | null;
+  roc_auc: number | null;
+  tpr_at_fpr_1pct: number | null;
+  metrics: Record<string, any>;
+  per_class: Record<string, { precision: number; recall: number; "f1-score": number; support: number }> | null;
+}
+
+export interface Comparison {
+  task: Task;
+  classes: string[];
+  models: {
+    model_id: number;
+    algorithm: Algorithm;
+    version: string;
+    is_final: boolean;
+    validation: Record<string, any>;
+    test: TestMetrics | null;
+  }[];
+}
+
+export interface ConfusionMatrix {
+  model_id: number;
+  task: Task;
+  algorithm: Algorithm;
+  classes: string[];
+  matrix: number[][];
+  note: string;
+}
+
+export interface Curves {
+  model_id: number;
+  roc_auc: number | null;
+  roc: { fpr: number[]; tpr: number[] } | null;
+  reliability: { bin: number; mean_confidence: number; observed: number; count: number }[];
+  ece: number | null;
+}
+
+export interface Alert {
+  id: number;
+  analysis_id: number;
+  severity: "low" | "medium" | "high";
+  title: string;
+  message: string;
+  is_read: boolean;
+  created_at: string;
+  read_at: string | null;
+}

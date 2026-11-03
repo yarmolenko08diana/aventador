@@ -153,6 +153,13 @@ def test_models_and_comparison_match_evaluation_files(client, env):
     cm = client.get(f"/api/v1/models/{final[0]['model_id']}/confusion-matrix").json()
     assert len(cm["matrix"]) == len(cm["classes"])
 
+    det = client.get("/api/v1/models/comparison?task=detection").json()["models"][0]
+    cur = client.get(f"/api/v1/models/{det['model_id']}/curves").json()
+    ev = json.loads((env["models"] / "detection" / det["algorithm"] / "evaluation.json").read_text(encoding="utf-8"))
+    assert cur["roc_auc"] == pytest.approx(ev["roc_auc"])
+    assert cur["roc"]["fpr"][0] == ev["roc_curve"]["fpr"][0] and cur["roc"]["tpr"][-1] == ev["roc_curve"]["tpr"][-1]
+    assert len(cur["roc"]["fpr"]) <= 1000 and cur["reliability"] == ev["reliability"]
+
 
 def test_alerts_follow_verdicts(client, worker):
     analyses = client.get("/api/v1/analyses?status=done&limit=200").json()["items"]
@@ -165,6 +172,8 @@ def test_alerts_follow_verdicts(client, worker):
         r = client.patch(f"/api/v1/alerts/{aid}", json={"is_read": True})
         assert r.status_code == 200 and r.json()["read_at"]
         assert client.get("/api/v1/alerts/unread-count").json()["unread"] == before - 1
+        client.post("/api/v1/alerts/read-all")
+        assert client.get("/api/v1/alerts/unread-count").json()["unread"] == 0
 
 
 def test_dashboard(client):
@@ -172,3 +181,15 @@ def test_dashboard(client):
     assert s["total_analyses"] >= 4
     assert set(s["by_verdict"]) == {"clean", "suspicious", "malicious"}
     assert s["timeline"]
+
+
+def test_roc_downsample_keeps_ends_and_order():
+    from app.api.v1.models import _downsample
+
+    fpr = [i / 4999 for i in range(5000)]
+    tpr = [min(1.0, 2 * x) for x in fpr]
+    out = _downsample(fpr, tpr, max_points=1000)
+    assert len(out["fpr"]) <= 1000
+    assert out["fpr"][0] == 0.0 and out["fpr"][-1] == 1.0 and out["tpr"][-1] == 1.0
+    assert out["fpr"] == sorted(out["fpr"])
+    assert _downsample([0.0, 1.0], [0.0, 1.0]) == {"fpr": [0.0, 1.0], "tpr": [0.0, 1.0]}

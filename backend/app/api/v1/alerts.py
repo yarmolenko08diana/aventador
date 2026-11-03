@@ -5,7 +5,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import Session
 
 from app.db.models import Alert
@@ -27,6 +27,14 @@ def list_alerts(db: Session = Depends(get_db), unread: bool = False,
 @router.get("/unread-count")
 def unread_count(db: Session = Depends(get_db)) -> dict:
     return {"unread": db.scalar(select(func.count()).where(Alert.is_read.is_(False)))}
+
+
+@router.post("/read-all")
+def mark_all_read(db: Session = Depends(get_db)) -> dict:
+    res = db.execute(update(Alert).where(Alert.is_read.is_(False))
+                     .values(is_read=True, read_at=datetime.now(timezone.utc)))
+    db.commit()
+    return {"marked": res.rowcount}
 
 
 @router.patch("/{alert_id}", response_model=AlertOut)
