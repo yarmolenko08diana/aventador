@@ -55,6 +55,7 @@ def env(tmp_path_factory):
     pd.DataFrame({"sha256": test["sha256"], "timestamp": test["timestamp"], "idx": np.arange(len(test)),
                   "label": test["target"], "family": np.where(test["target"] == "malware", "fa", None),
                   "category": np.where(test["target"] == "malware", "trojan", None),
+                  "category_target": np.where(test["target"] == "malware", "trojan", None),
                   "family_in_classifier": test["target"] == "malware"}).to_csv(demo / "index.csv", index=False)
 
     os.environ.update(

@@ -4,7 +4,8 @@
 
 Создаёт data/processed/demo/:
     vectors.npy  — векторы EMBER v2 только тестовых образцов (float32), сервис читает их через memmap;
-    index.csv    — sha256, номер строки в vectors.npy, истинные метка, семейство, категория, дата.
+    index.csv    — sha256, номер строки в vectors.npy, истинные метка, семейство, категория
+                   (исходная и в классах модели), дата.
 
 Берутся только образцы из test: модели их не видели ни при обучении, ни при подборе порогов.
 Самих файлов нет, поэтому индикаторы в этом режиме не строятся.
@@ -27,6 +28,7 @@ OUT_DIR = ROOT / "data" / "processed" / "demo"
 def main(out_dir: Path = OUT_DIR) -> int:
     det, _ = read_split("detection", SPLITS_DIR)
     fam, _ = read_split("family", SPLITS_DIR)
+    cat, _ = read_split("category", SPLITS_DIR)
     test = det[det["split"] == "test"].reset_index(drop=True)
     known = set(fam.loc[(fam["split"] == "test") & (fam["target"] != UNKNOWN), "sha256"])
 
@@ -40,6 +42,8 @@ def main(out_dir: Path = OUT_DIR) -> int:
     index["family"] = meta.loc[rows, "family"].to_numpy()
     index["category"] = meta.loc[rows, "category"].to_numpy()
     index["family_in_classifier"] = index["sha256"].isin(known)
+    # Категория так, как её знает классификатор: редкие объединены в other на этапе 1
+    index["category_target"] = index["sha256"].map(cat.set_index("sha256")["target"])
 
     out_dir.mkdir(parents=True, exist_ok=True)
     np.save(out_dir / "vectors.npy", data.X[rows])

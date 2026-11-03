@@ -1,4 +1,4 @@
-.PHONY: env venv install db-up db-check db-down test migrate api worker demo
+.PHONY: env venv install db-up db-check db-down test migrate api worker demo frontend-install frontend
 
 PY ?= python3
 
@@ -36,3 +36,9 @@ worker:         ## запустить worker (разбирает файлы из
 
 demo:           ## подготовить векторы тестовой выборки для режима «образец из теста»
 	python -m mltrain.export_demo
+
+frontend-install: ## поставить пакеты веб-интерфейса (нужен Node.js 18+)
+	cd frontend && npm install
+
+frontend:       ## запустить веб-интерфейс: http://localhost:5173 (API и worker должны работать)
+	cd frontend && npm run dev

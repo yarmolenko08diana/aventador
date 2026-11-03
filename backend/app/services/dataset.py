@@ -38,6 +38,7 @@ def lookup(demo_dir: Path, sha256: str) -> dict | None:
     row = index.loc[sha256]
     truth = {"label": row["label"], "family": None if pd.isna(row["family"]) else row["family"],
              "category": None if pd.isna(row["category"]) else row["category"],
+             "category_target": None if pd.isna(row.get("category_target")) else row.get("category_target"),
              "family_in_classifier": bool(row["family_in_classifier"]), "timestamp": str(row["timestamp"])}
     return {"idx": int(row["idx"]), "truth": truth}
 
