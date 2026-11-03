@@ -40,7 +40,7 @@ Random Forest, LightGBM и MLP.
 ## Запуск этапа 0
 
 ```bash
-git clone <url-репозитория> && cd malware-classifier
+cd ~ && git clone https://github.com/yarmolenko08diana/aventador.git && cd aventador
 make env          # создаёт .env из .env.example
 make venv && . .venv/bin/activate
 make install      # ставит core, ml, backend в режиме разработки
