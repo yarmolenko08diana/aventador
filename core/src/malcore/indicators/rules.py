@@ -33,6 +33,8 @@ BENIGN_URL_HOSTS = {
     "crt.sectigo.com", "sectigo.com", "ocsp.globalsign.com", "crl.globalsign.com",
     "secure.globalsign.com", "www.globalsign.com", "ocsp.comodoca.com", "crl.comodoca.com",
     "go.microsoft.com",  # короткие ссылки на справку Microsoft
+    # пространства имён XML: это идентификаторы схем, по ним никто не ходит
+    "schemas.openxmlformats.org", "schemas.xmlsoap.org", "docs.oasis-open.org", "www.w3.org",
 }
 SEVERITIES = ("low", "medium", "high")
 
@@ -106,7 +108,7 @@ def _suspicious_urls(info: dict) -> list[str]:
             host = (urlparse(url).hostname or "").lower()
         except ValueError:  # строка из файла лишь похожа на URL (например, «http://[...»)
             host = ""
-        if host and host not in BENIGN_URL_HOSTS:
+        if host and "." in host and host not in BENIGN_URL_HOSTS:  # «http://%s» — шаблон, а не адрес
             out.append(url)
     return out
 

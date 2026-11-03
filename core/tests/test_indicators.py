@@ -180,7 +180,8 @@ def test_network_filters_benign_hosts_and_versions():
     assert "STR_NETWORK" in codes(with_strings(urls=["http://evil.example.net/a.exe"]))
     assert "STR_NETWORK" in codes(with_strings(ips=["185.10.20.30"]))
     assert "STR_NETWORK" in codes(with_strings(ips=["8.8.8.8"]))
-    benign = with_strings(urls=["http://schemas.microsoft.com/SMI/2005/WindowsSettings"],
+    benign = with_strings(urls=["http://schemas.microsoft.com/SMI/2005/WindowsSettings", "http://%s/",
+                                "http://schemas.xmlsoap.org/soap/envelope/"],
                           ips=["6.0.0.0", "127.0.0.1", "1.0.0.0", "1.1.0.14"])
     assert "STR_NETWORK" not in codes(benign)
 
