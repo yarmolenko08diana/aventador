@@ -1,0 +1,56 @@
+# Параметры обучения (этап 4, раздел 7 ТЗ).
+# Подбор гиперпараметров идёт только по validation; тестовая выборка на этапе 4 не загружается.
+
+seed: 42
+n_jobs: 4            # потоков CPU (в .wslconfig выделено 4 ядра)
+
+# Пороги вердикта обнаружения выбираются на validation по доле ложных тревог (FPR)
+# на безопасных файлах: malicious — не больше 1% ложных, suspicious — не больше 5%.
+detection_verdict_fpr:
+  malicious: 0.01
+  suspicious: 0.05
+
+rf:
+  grid:
+    n_estimators: [300]
+    max_depth: [null, 40]
+    max_features: ["sqrt", 0.05]
+    min_samples_leaf: [1]
+
+lgbm:
+  fixed:
+    learning_rate: 0.05
+    feature_fraction: 0.5
+    bagging_fraction: 0.8
+    bagging_freq: 1
+    min_child_samples: 20
+    lambda_l2: 1.0
+  grid:
+    num_leaves: [63, 255]
+  max_rounds: 3000
+  early_stopping: 100
+
+mlp:
+  fixed:
+    batch_size: 512
+    max_epochs: 40
+    patience: 6
+    weight_decay: 1.0e-5
+  grid:
+    hidden: [[512, 256]]
+    dropout: [0.2, 0.5]
+    lr: [0.001]
+
+# Поправки для отдельных задач: у многоклассового LightGBM каждая итерация строит
+# по дереву на класс, поэтому ограничиваем число итераций и листьев.
+overrides:
+  family:
+    lgbm:
+      max_rounds: 1500
+      grid:
+        num_leaves: [31, 127]
+  category:
+    lgbm:
+      max_rounds: 1500
+      grid:
+        num_leaves: [31, 127]

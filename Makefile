@@ -10,6 +10,7 @@ venv:           ## создать виртуальное окружение .ven
 
 install:        ## поставить пакеты проекта в режиме разработки (запускать внутри .venv)
 	python -m pip install -U pip
+	python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
 	python -m pip install -e ./core -e ./ml -e ./backend pytest
 
 db-up: env      ## поднять PostgreSQL и дождаться готовности

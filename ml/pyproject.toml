@@ -7,7 +7,7 @@ name = "mltrain"
 version = "0.0.1"
 description = "Подготовка данных BODMAS, обучение и оценка моделей"
 requires-python = ">=3.11"
-# scikit-learn, lightgbm и torch добавляются на этапе 4
+# scikit-learn, lightgbm, torch и joblib приходят вместе с malcore (они нужны и для инференса)
 dependencies = [
     "malcore",
     "numpy>=1.26",

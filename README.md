@@ -58,3 +58,45 @@ make test         # 3 теста, включая подключение к БД
 - `bodmas.npz`: векторы признаков EMBER v2 и метки;
 - `bodmas_metadata.csv`: sha256, время и семейство;
 - `bodmas_malware_category.csv`: категория (trojan, worm, …).
+
+Затем:
+
+```
+python -m mltrain.data.prepare
+```
+
+## Индикаторы (этап 3)
+
+Оценка ложных срабатываний правил на безопасных файлах Windows (файлы только читаются):
+
+```
+python -m malcore.indicators.fp_report /mnt/c/Windows/System32 --limit 1000 --top 10
+```
+
+## Обучение моделей (этап 4)
+
+После `git pull` переустановите пакеты: появились lightgbm и PyTorch (CPU-сборка).
+
+```
+make install
+python -m mltrain.train --all
+```
+
+Обучаются 9 моделей (RF, LightGBM, MLP × detection, family, category) и 3 ансамбля.
+Параметры лежат в `ml/configs/train.yaml`. Гиперпараметры и пороги подбираются только на validation,
+тестовая выборка на этом этапе не загружается. Можно обучать по частям:
+
+```
+python -m mltrain.train --task detection              # три модели и ансамбль одной задачи
+python -m mltrain.train --task family --model lgbm    # одна модель
+```
+
+Результат: `artifacts/models/<задача>/<модель>/` с файлом модели, `manifest.json` (классы, пороги,
+гиперпараметры, метрики validation, sha256 файлов, версии библиотек) и `train.log`.
+После сохранения модель загружается заново через `malcore` (как в сервисе) и сверяется с исходной.
+
+Проверка воспроизводимости (переобучает модель во временную папку и сравнивает метрики validation):
+
+```
+python -m mltrain.train --task detection --model lgbm --verify
+```
