@@ -35,8 +35,8 @@ def collect(root: Path, limit: int, seed: int) -> list[Path]:
     return files[:limit] if limit else files
 
 
-def run(paths: list[Path]) -> tuple[int, int, Counter]:
-    parsed, failed, counts = 0, 0, Counter()
+def run(paths: list[Path]) -> tuple[int, int, Counter, list[str]]:
+    parsed, failed, counts, errors = 0, 0, Counter(), []
     for i, path in enumerate(paths, 1):
         try:
             info = analyze(path.read_bytes())
@@ -47,10 +47,13 @@ def run(paths: list[Path]) -> tuple[int, int, Counter]:
             failed += 1
             continue
         parsed += 1
-        counts.update({h["code"] for h in evaluate(info)})
+        try:
+            counts.update({h["code"] for h in evaluate(info)})
+        except Exception as exc:  # ошибка в правиле: не прячем, а печатаем файл и продолжаем
+            errors.append(f"{path}: {type(exc).__name__}: {exc}")
         if i % 200 == 0:
             print(f"  обработано {i}/{len(paths)}", file=sys.stderr)
-    return parsed, failed, counts
+    return parsed, failed, counts, errors
 
 
 def main(argv: list[str] | None = None) -> None:
@@ -62,7 +65,7 @@ def main(argv: list[str] | None = None) -> None:
 
     paths = collect(args.root, args.limit, args.seed)
     print(f"Найдено файлов: {len(paths)}", file=sys.stderr)
-    parsed, failed, counts = run(paths)
+    parsed, failed, counts, errors = run(paths)
     if not parsed:
         sys.exit("Ни один файл не разобран как PE")
 
@@ -71,6 +74,9 @@ def main(argv: list[str] | None = None) -> None:
     for rule in catalog():
         n = counts.get(rule["code"], 0)
         print(f"{rule['code']:<20} {rule['severity']:<8} {n:>7} {n / parsed:>7.1%}")
+    if errors:
+        print(f"\nОшибки правил ({len(errors)}), это баги, пришли их разработчику:")
+        print("\n".join(errors[:20]))
 
 
 if __name__ == "__main__":

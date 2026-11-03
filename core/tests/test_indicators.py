@@ -201,3 +201,9 @@ def test_embedded_pe():
     assert "RES_EMBEDDED_PE" in codes(base_info(overlay_starts_with_mz=True))
     res[0]["starts_with_mz"] = False
     assert "RES_EMBEDDED_PE" not in codes(base_info(resources=res))
+
+
+def test_network_survives_malformed_url():
+    info = with_strings(urls=["http://[bad", "http://evil.example.net/x"])
+    assert "STR_NETWORK" in codes(info)
+    assert "STR_NETWORK" not in codes(with_strings(urls=["http://[bad"]))

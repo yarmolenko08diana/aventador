@@ -94,7 +94,10 @@ def _suspicious_ips(info: dict) -> list[str]:
 def _suspicious_urls(info: dict) -> list[str]:
     out = []
     for url in info.get("strings", {}).get("urls", []):
-        host = (urlparse(url).hostname or "").lower()
+        try:
+            host = (urlparse(url).hostname or "").lower()
+        except ValueError:  # строка из файла лишь похожа на URL (например, «http://[...»)
+            host = ""
         if host and host not in BENIGN_URL_HOSTS:
             out.append(url)
     return out
