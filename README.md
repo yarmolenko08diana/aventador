@@ -100,3 +100,16 @@ python -m mltrain.train --task family --model lgbm    # одна модель
 ```
 python -m mltrain.train --task detection --model lgbm --verify
 ```
+
+## Оценка на тесте (этап 5)
+
+```
+pip install -e ./ml                  # добавился matplotlib для рисунков
+python -m mltrain.evaluate --all     # единственный прогон на тестовой выборке
+python -m mltrain.experiments        # случайное разбиение, дата компиляции, важность признаков
+```
+
+Результаты: `evaluation.json` рядом с каждой моделью, `artifacts/reports/evaluation.md`,
+`artifacts/reports/experiments.md` и рисунки в `artifacts/reports/figures/`.
+Тест используется один раз: повторный запуск `evaluate` требует флага `--again` и отмечается в отчёте.
+Модель итогового вердикта выбирается по validation (`artifacts/models/<задача>/selection.json`).

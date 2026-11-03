@@ -53,3 +53,19 @@ def test_not_pe_still_gives_vector():
     vec = extract_vector((FIX / "pe" / "crafted" / "not_pe.bin").read_bytes())
     assert vec.shape == (VECTOR_SIZE,)
     assert vec[:256].sum() == pytest.approx(1.0)
+
+
+def test_feature_names_match_layout():
+    from malcore.features import names
+
+    assert len(names.feature_names()) == VECTOR_SIZE
+    assert len(set(names.feature_names())) == VECTOR_SIZE
+    assert [(g, s) for g, s in names.GROUPS] and sum(s for _, s in names.GROUPS) == VECTOR_SIZE
+    # Время компиляции стоит первым в группе header: 256 + 256 + 104 + 10 = 626
+    assert names.index_of("header.coff.timestamp") == 626
+    pe = (FIX / "pe" / "benign" / "pip_t64.exe").read_bytes()
+    import pefile
+
+    vec = extract_vector(pe)
+    assert vec[626] == pefile.PE(data=pe).FILE_HEADER.TimeDateStamp
+    assert vec[names.index_of("general.size")] == len(pe)

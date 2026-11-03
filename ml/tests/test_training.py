@@ -4,6 +4,7 @@
 выбор порогов на validation, воспроизводимость. Метрики на ней ничего не говорят о BODMAS.
 """
 
+import json
 from pathlib import Path
 
 import numpy as np
@@ -137,3 +138,61 @@ def test_unknown_threshold_rejects_low_confidence():
     unknown = np.array([[0.55, 0.45], [0.5, 0.5]])
     res = metrics.choose_unknown_threshold(np.array([0, 1, 0]), known, unknown)
     assert res["unknown_rejected"] == 1.0 and res["known_rejected"] == 0.0
+
+
+# --- этап 5: оценка на тесте и эксперименты -------------------------------------------------
+
+
+@pytest.fixture(scope="module")
+def evaluated(trained, tmp_path_factory):
+    from mltrain import evaluate
+
+    models, args, raw = trained
+    reports = tmp_path_factory.mktemp("reports")
+    common = ["--splits-dir", args[3], "--models-dir", str(models), "--features", str(raw / "bodmas.npz"),
+              "--reports-dir", str(reports)]
+    assert evaluate.main(["--all", *common]) == 0
+    return models, reports, common
+
+
+def test_evaluation_files(evaluated):
+    models, reports, _ = evaluated
+    for task in ("detection", "family", "category"):
+        for algo in ("rf", "lgbm", "mlp", "ensemble"):
+            ev = json.loads((models / task / algo / "evaluation.json").read_text(encoding="utf-8"))
+            assert ev["split"] == "temporal" and ev["n_test"] > 0
+            cm = np.asarray(ev["confusion_matrix"])
+            assert cm.sum() == ev["n_test"]
+        sel = json.loads((models / task / "selection.json").read_text(encoding="utf-8"))
+        assert sel["selected"] in ("rf", "lgbm", "mlp", "ensemble")
+    fam = json.loads((models / "family" / "rf" / "evaluation.json").read_text(encoding="utf-8"))
+    assert fam["open_set"]["n_unknown"] > 0
+    det = json.loads((models / "detection" / "lgbm" / "evaluation.json").read_text(encoding="utf-8"))
+    assert sum(sum(v.values()) for v in det["verdicts"].values()) == det["n_test"]
+    text = (reports / "evaluation.md").read_text(encoding="utf-8")
+    assert "## detection" in text and "## family" in text
+    for name in ("detection_roc.png", "detection_confusion.png", "family_reliability.png", "category_confusion.png"):
+        assert (reports / "figures" / name).stat().st_size > 1000
+
+
+def test_test_set_is_used_once(evaluated):
+    from mltrain import evaluate
+
+    _, _, common = evaluated
+    with pytest.raises(SystemExit, match="уже использован"):
+        evaluate.main(["--task", "detection", *common])
+    assert evaluate.main(["--task", "detection", "--again", *common]) == 0
+    marker = json.loads((evaluated[0] / "detection" / "test_evaluated.json").read_text(encoding="utf-8"))
+    assert len(marker["runs"]) == 2
+
+
+def test_experiments(evaluated):
+    from mltrain import experiments
+
+    models, reports, common = evaluated
+    assert experiments.main([*common, "--n-jobs", "2"]) == 0
+    res = json.loads((reports / "experiments.json").read_text(encoding="utf-8"))
+    assert set(res["random_split"]) == {"detection", "family", "category"}
+    assert 1 <= res["importance"]["detection"]["timestamp_rank"] <= 2381
+    assert "roc_auc" in res["timestamp"]["without_timestamp"]
+    assert "Случайное разбиение" in (reports / "experiments.md").read_text(encoding="utf-8")
