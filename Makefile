@@ -1,4 +1,4 @@
-.PHONY: env venv install db-up db-check db-down test
+.PHONY: env venv install db-up db-check db-down test migrate api worker demo
 
 PY ?= python3
 
@@ -11,7 +11,7 @@ venv:           ## создать виртуальное окружение .ven
 install:        ## поставить пакеты проекта в режиме разработки (запускать внутри .venv)
 	python -m pip install -U pip
 	python -m pip install torch --index-url https://download.pytorch.org/whl/cpu
-	python -m pip install -e ./core -e ./ml -e ./backend pytest
+	python -m pip install -e ./core -e ./ml -e "./backend[test]"
 
 db-up: env      ## поднять PostgreSQL и дождаться готовности
 	docker compose up -d --wait db
@@ -24,3 +24,15 @@ db-down:        ## остановить контейнеры (данные БД 
 
 test:           ## все тесты
 	python -m pytest core/tests ml/tests backend/tests -q
+
+migrate:        ## применить миграции БД (Alembic)
+	cd backend && alembic upgrade head
+
+api:            ## запустить API: http://localhost:8000/docs
+	cd backend && uvicorn app.main:app --reload --port 8000
+
+worker:         ## запустить worker (разбирает файлы из очереди)
+	cd backend && python -m worker.main
+
+demo:           ## подготовить векторы тестовой выборки для режима «образец из теста»
+	python -m mltrain.export_demo

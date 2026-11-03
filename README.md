@@ -113,3 +113,22 @@ python -m mltrain.experiments        # случайное разбиение, д
 `artifacts/reports/experiments.md` и рисунки в `artifacts/reports/figures/`.
 Тест используется один раз: повторный запуск `evaluate` требует флага `--again` и отмечается в отчёте.
 Модель итогового вердикта выбирается по validation (`artifacts/models/<задача>/selection.json`).
+
+## Backend: API, БД и worker (этап 6)
+
+```
+make install          # добавились fastapi, sqlalchemy, alembic
+make db-up            # PostgreSQL в Docker
+make migrate          # создать таблицы
+make demo             # векторы тестовой выборки для режима «образец из теста»
+make worker           # терминал 1: worker разбирает файлы из очереди
+make api              # терминал 2: API, документация на http://localhost:8000/docs
+```
+
+Поток анализа: `POST /api/v1/samples` (файл) → проверка MZ/PE, хеши, карантин `quarantine/<sha256>.bin`
+(только чтение) → анализ в статусе `queued` → worker берёт его из очереди, разбирает файл в дочернем процессе
+с тайм-аутом и лимитом памяти, применяет правила и модели → `done` или `failed` с причиной.
+API сам PE-файлы не разбирает, а скачать файл обратно через API нельзя.
+
+Режим «образец из тестовой выборки»: `POST /api/v1/analyses/from-dataset` с sha256 из `GET /api/v1/dataset/examples`.
+Индикаторов в этом режиме нет: самого файла нет, есть только вектор признаков.

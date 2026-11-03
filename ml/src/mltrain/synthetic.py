@@ -37,11 +37,11 @@ def make_dataset(tmp: Path, n: int = 900, seed: int = 0) -> tuple[Path, Path]:
     for i, f in enumerate(["fa", "fb", "fc"]):
         X[family == f, 10 + i] += 3.0  # сигнал для семейств
     raw = tmp / "raw"
-    raw.mkdir()
+    raw.mkdir(parents=True)
     np.savez(raw / "bodmas.npz", X=X, y=label)
 
     splits = tmp / "splits"
-    splits.mkdir()
+    splits.mkdir(parents=True)
     split = np.array(["train"] * int(n * 0.7) + ["val"] * int(n * 0.1) + ["test"] * (n - int(n * 0.7) - int(n * 0.1)))
     base = pd.DataFrame({"row": np.arange(n), "sha256": [f"{i:064x}" for i in range(n)],
                          "timestamp": "2020-01-01", "split": split})

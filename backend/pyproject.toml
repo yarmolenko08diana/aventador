@@ -7,11 +7,21 @@ name = "malscan-backend"
 version = "0.0.1"
 description = "API (FastAPI) и worker анализа"
 requires-python = ">=3.11"
-# fastapi, sqlalchemy, alembic, reportlab добавляются на этапе 6
+# reportlab добавляется на этапе 9 (PDF)
 dependencies = [
     "malcore",
     "psycopg[binary]>=3.1",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "sqlalchemy>=2.0",
+    "alembic>=1.13",
+    "pydantic-settings>=2.4",
+    "python-multipart>=0.0.9",
+    "pandas>=2.1",
 ]
+
+[project.optional-dependencies]
+test = ["pytest", "httpx"]
 
 [tool.setuptools.packages.find]
 include = ["app*", "worker*"]
