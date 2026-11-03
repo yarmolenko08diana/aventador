@@ -14,8 +14,11 @@ family:
   min_val: 10
   min_test: 20
 
-# Задача category: категории с малым числом образцов в train объединяются в "other"
+# Задача category: категории, которых мало в любой из выборок, объединяются в "other"
+# (иначе класс нельзя оценить: например, virus есть только в train)
 category:
   min_train: 100
+  min_val: 5
+  min_test: 20
 
 seed: 42

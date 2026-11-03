@@ -67,12 +67,16 @@ def split_family(meta: pd.DataFrame, ratios: dict[str, float], min_counts: dict[
     return out.drop(columns="family")
 
 
-def split_category(meta: pd.DataFrame, ratios: dict[str, float], min_train: int) -> pd.DataFrame:
+def split_category(meta: pd.DataFrame, ratios: dict[str, float], min_counts: dict[str, int]) -> pd.DataFrame:
     mal = meta[meta["label"] == 1]
     out = mal[["row", "sha256", "timestamp", "category"]].copy()
     out["split"] = temporal_split(mal, ratios)
-    train_counts = out.loc[out["split"] == "train", "category"].value_counts()
-    keep = train_counts[train_counts >= min_train].index
+    counts = out.groupby(["category", "split"]).size().unstack(fill_value=0).reindex(columns=SPLITS, fill_value=0)
+    keep = counts[
+        (counts["train"] >= min_counts["min_train"])
+        & (counts["val"] >= min_counts["min_val"])
+        & (counts["test"] >= min_counts["min_test"])
+    ].index
     out["target"] = out["category"].where(out["category"].isin(keep), OTHER)
     return out.drop(columns="category")
 

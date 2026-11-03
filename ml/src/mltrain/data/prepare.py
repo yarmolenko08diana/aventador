@@ -62,7 +62,7 @@ def main() -> int:
 
     detection = split_detection(meta, ratios)
     family = split_family(meta, ratios, cfg["family"])
-    category = split_category(meta, ratios, cfg["category"]["min_train"])
+    category = split_category(meta, ratios, cfg["category"])
 
     SPLITS_DIR.mkdir(parents=True, exist_ok=True)
     for name, frame in (("detection", detection), ("family", family), ("category", category)):
@@ -105,7 +105,8 @@ def main() -> int:
         "",
         "## Категории",
         "",
-        f"Категории, у которых меньше {cfg['category']['min_train']} образцов в train, объединены в other.",
+        f"Категории, у которых меньше {cfg['category']['min_train']} образцов в train, {cfg['category']['min_val']} в val "
+        f"или {cfg['category']['min_test']} в test, объединены в other.",
         "",
         class_table(category).to_markdown(),
         "",

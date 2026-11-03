@@ -100,6 +100,6 @@ def test_family_rare_becomes_unknown():
 def test_category_rare_merged_to_other():
     _, y, metadata, categories = make_raw()
     meta = build_meta(y, metadata, categories)
-    cat = split_category(meta, RATIOS, min_train=10)
+    cat = split_category(meta, RATIOS, {"min_train": 10, "min_val": 1, "min_test": 1})
     assert "rootkit" not in set(cat["target"])
     assert "other" in set(cat["target"])
