@@ -3,7 +3,7 @@ import { useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 
 import { api } from "../api/client";
-import { Card, Empty, ErrorBox, StatusBadge, VerdictBadge, dt, pct } from "../components/ui";
+import { Card, Empty, ErrorBox, StatusBadge, VerdictBadge, dt, pct, prob } from "../components/ui";
 
 const PAGE = 25;
 const FILTERS = ["q", "verdict", "family", "status", "date_from", "date_to"] as const;
@@ -122,7 +122,7 @@ export default function History() {
                     </td>
                     <td className="td"><StatusBadge status={a.status} /></td>
                     <td className="td"><VerdictBadge verdict={a.verdict} /></td>
-                    <td className="td text-sm">{a.detector_score === null ? "—" : a.detector_score.toFixed(3)}</td>
+                    <td className="td text-sm">{prob(a.detector_score)}</td>
                     <td className="td text-sm">
                       {a.final_family ?? (a.family_status === "unknown" ? <span className="text-amber-700">не определено</span> : "—")}
                       {a.final_family && <span className="ml-1 text-xs text-slate-500">{pct(a.family_confidence, 0)}</span>}

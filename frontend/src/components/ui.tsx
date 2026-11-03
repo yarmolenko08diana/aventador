@@ -67,6 +67,10 @@ export function Empty({ children }: { children: ReactNode }) {
 export const pct = (x: number | null | undefined, digits = 1) =>
   x === null || x === undefined ? "—" : `${(x * 100).toFixed(digits)}%`;
 
+// Вероятность или порог: у LightGBM они бывают очень малы, и 0.0000 скрыл бы разницу с порогом
+export const prob = (x: number | null | undefined) =>
+  x === null || x === undefined ? "—" : x === 0 || x >= 0.001 ? x.toFixed(4) : x.toExponential(2);
+
 export const dt = (iso: string | null) => (iso ? new Date(iso).toLocaleString("ru-RU") : "—");
 
 export const bytes = (n: number | null) => {

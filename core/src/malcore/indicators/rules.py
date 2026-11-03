@@ -9,6 +9,7 @@
 from __future__ import annotations
 
 import ipaddress
+import re
 import time
 from dataclasses import dataclass
 from typing import Callable
@@ -101,15 +102,31 @@ def _suspicious_ips(info: dict) -> list[str]:
     return out
 
 
+# Адреса инфраструктуры сертификатов (списки отзыва, OCSP, цепочки) попадают в файл вместе
+# с подписью — например, в overlay установщика. Это не сетевая активность программы.
+# Строка, вырезанная из DER-сертификата, часто кончается лишним «0» (байт 0x30 следующего поля).
+PKI_HOST_LABEL = re.compile(r"^(crl|ocsp|ts-ocsp|ts-crl|cacerts|aia)\d*$")  # crl, crl3, ocsp2 — но не «crlupdate»
+PKI_PATH = re.compile(r"\.(crl|crt|cer|p7c)0?$", re.IGNORECASE)
+
+
+def _is_pki_url(host: str, path: str) -> bool:
+    labels = host.rstrip("0").split(".")[:-1]  # без домена верхнего уровня
+    return any(PKI_HOST_LABEL.match(label) for label in labels) or bool(PKI_PATH.search(path))
+
+
 def _suspicious_urls(info: dict) -> list[str]:
     out = []
     for url in info.get("strings", {}).get("urls", []):
         try:
-            host = (urlparse(url).hostname or "").lower()
+            parsed = urlparse(url)
+            host, path = (parsed.hostname or "").lower(), parsed.path
         except ValueError:  # строка из файла лишь похожа на URL (например, «http://[...»)
-            host = ""
-        if host and "." in host and host not in BENIGN_URL_HOSTS:  # «http://%s» — шаблон, а не адрес
-            out.append(url)
+            host, path = "", ""
+        if not host or "." not in host:  # «http://%s» — шаблон, а не адрес
+            continue
+        if host in BENIGN_URL_HOSTS or _is_pki_url(host, path):
+            continue
+        out.append(url)
     return out
 
 

@@ -15,7 +15,7 @@ import { Bar, Scatter } from "react-chartjs-2";
 
 import { api } from "../api/client";
 import type { Algorithm, Comparison, ConfusionMatrix, Task } from "../api/types";
-import { ALGO_TITLE, Card, Empty, ErrorBox, TASK_TITLE, dt, pct } from "../components/ui";
+import { ALGO_TITLE, Card, Empty, ErrorBox, TASK_TITLE, dt, pct, prob } from "../components/ui";
 
 ChartJS.register(BarElement, CategoryScale, LineElement, LinearScale, LogarithmicScale, PointElement, Tooltip, Legend);
 
@@ -111,7 +111,7 @@ export default function Models() {
             <div>Данные: {info.dataset}, разбиение {info.split_strategy}</div>
             <div>Признаки: {info.feature_version}</div>
             {Object.entries(info.thresholds).map(([k, v]) => (
-              <div key={k}>Порог {k}: <b>{v.toFixed(4)}</b> (выбран на validation)</div>
+              <div key={k}>Порог {k}: <b>{prob(v)}</b> (выбран на validation)</div>
             ))}
           </dl>
           <details className="mt-3 text-sm">

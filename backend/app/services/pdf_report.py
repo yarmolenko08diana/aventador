@@ -94,6 +94,13 @@ def _num(x: float | None, digits: int = 4) -> str:
     return "—" if x is None else f"{x:.{digits}f}"
 
 
+def _prob(x: float | None) -> str:
+    """Вероятность/порог: у LightGBM они бывают очень малы, 0.0000 скрыл бы разницу с порогом."""
+    if x is None:
+        return "—"
+    return f"{x:.4f}" if x == 0 or x >= 0.001 else f"{x:.2e}"
+
+
 def _dt(d: datetime | None) -> str:
     return "—" if d is None else d.astimezone(timezone.utc).strftime("%d.%m.%Y %H:%M:%S UTC")
 
@@ -205,9 +212,9 @@ def build_report(a: Analysis, generated_at: datetime | None = None) -> bytes:
                 if a.final_category else "не определялась")
     disagree = [TASK_TITLE[k] for k, v in (a.disagreement or {}).items() if v]
     pairs = [
-        ("Вероятность вредоносности", f"<b>{_num(a.detector_score)}</b> (итоговая модель: "
+        ("Вероятность вредоносности", f"<b>{_prob(a.detector_score)}</b> (итоговая модель: "
                                       f"{t(ALGO_TITLE.get(final_det.model_version.algorithm)) if final_det else '—'})"),
-        ("Пороги вердикта", f"вредоносный ≥ {_num(thr.get('malicious'))}, подозрительный ≥ {_num(thr.get('suspicious'))}"),
+        ("Пороги вердикта", f"вредоносный ≥ {_prob(thr.get('malicious'))}, подозрительный ≥ {_prob(thr.get('suspicious'))}"),
         ("Семейство", family),
         ("Категория", category),
         ("Согласие моделей", "модели расходятся в задачах: " + ", ".join(disagree) if disagree else "все модели согласны"),

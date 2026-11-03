@@ -186,6 +186,17 @@ def test_network_filters_benign_hosts_and_versions():
     assert "STR_NETWORK" not in codes(benign)
 
 
+def test_network_ignores_certificate_infrastructure():
+    # Адреса из реального установщика (TLauncher): цепочка подписи лежит в overlay
+    pki = with_strings(urls=["http://Certera.crl.sectigo.com/CerteraCodeSigningCA.crl",
+                             "http://Certera.ocsp.sectigo.com0", "http://certs.securetrust.com/issuers/TWGCA.crt0",
+                             "http://crl.securetrust.com/TWGCSCA_L1.crl0", "http://ocsp.example-ca.net"])
+    assert "STR_NETWORK" not in codes(pki)
+    # похожий на «crl» хост и обычная загрузка .exe остаются подозрительными
+    assert "STR_NETWORK" in codes(with_strings(urls=["http://crlupdate.example.net/a.exe"]))
+    assert "STR_NETWORK" in codes(with_strings(urls=["http://cdn.example.net/payload.exe"]))
+
+
 def test_timestamp():
     now = 1_700_000_000
     assert check_timestamp(base_info(compile_timestamp=0), now) is not None

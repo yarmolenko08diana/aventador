@@ -4,7 +4,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { api } from "../api/client";
 import type { Analysis } from "../api/types";
 import { ImportsList, IndicatorList, ModelComparison, SectionsTable, StaticSummary } from "../components/AnalysisParts";
-import { Card, ErrorBox, StatusBadge, VerdictBadge, bytes, dt, pct } from "../components/ui";
+import { Card, ErrorBox, StatusBadge, VerdictBadge, bytes, dt, pct, prob } from "../components/ui";
 
 const finished = (a?: Analysis) => a?.status === "done" || a?.status === "failed";
 
@@ -69,7 +69,7 @@ export default function AnalysisDetail() {
           <Card title="Вердикт">
             <VerdictBadge verdict={a.verdict} large />
             <p className="mt-3 text-sm text-slate-600">
-              Вероятность вредоносности (итоговый детектор): <b>{a.detector_score?.toFixed(4)}</b>
+              Вероятность вредоносности (итоговый детектор): <b>{prob(a.detector_score)}</b>
             </p>
           </Card>
           <Card title="Семейство и категория">

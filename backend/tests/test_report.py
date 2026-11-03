@@ -43,7 +43,8 @@ def test_report_for_uploaded_file(client, worker):
     assert a["sample"]["original_name"] in text
     assert sha in text.replace("\n", "")
     assert VERDICT[a["verdict"]] in text
-    assert f"{a['detector_score']:.4f}" in text
+    score = a["detector_score"]
+    assert (f"{score:.4f}" if score == 0 or score >= 0.001 else f"{score:.2e}") in text
     for algo in ALGOS:
         assert algo in text
     # Версии моделей из отчёта совпадают с ответом API
