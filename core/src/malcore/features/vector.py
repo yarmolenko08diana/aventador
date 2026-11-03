@@ -175,9 +175,12 @@ def header_info(pe) -> np.ndarray:
     nums = [0] * 11  # версии и размеры из Optional Header
     if pe is not None:
         h, o = pe.header, pe.optional_header
+        with warnings.catch_warnings():  # LIEF предупреждает о неизвестном machine — это ожидаемо
+            warnings.simplefilter("ignore", RuntimeWarning)
+            machine = h.machine
         coff = {
             "timestamp": h.time_date_stamps,
-            "machine": enum_name(h.machine, MACHINES),
+            "machine": enum_name(machine, MACHINES),
             "characteristics": flag_names(h.characteristics, HEADER_FLAGS),
         }
         opt = {
