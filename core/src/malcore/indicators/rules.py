@@ -32,6 +32,7 @@ BENIGN_URL_HOSTS = {
     "ts-crl.ws.symantec.com", "ts-aia.ws.symantec.com", "ocsp.sectigo.com", "crl.sectigo.com",
     "crt.sectigo.com", "sectigo.com", "ocsp.globalsign.com", "crl.globalsign.com",
     "secure.globalsign.com", "www.globalsign.com", "ocsp.comodoca.com", "crl.comodoca.com",
+    "go.microsoft.com",  # короткие ссылки на справку Microsoft
 }
 SEVERITIES = ("low", "medium", "high")
 
@@ -132,7 +133,12 @@ def check_few_imports(info):
 
 
 def check_rwx(info):
-    names = [s["name"] for s in info.get("sections", []) if s["writable"] and s["executable"]]
+    # У драйверов (подсистема NATIVE) секция INIT штатно RWX: код инициализации выгружается после загрузки
+    driver = info.get("subsystem") == "IMAGE_SUBSYSTEM_NATIVE"
+    names = [
+        s["name"] for s in info.get("sections", [])
+        if s["writable"] and s["executable"] and not (driver and s["name"] == "INIT")
+    ]
     return {"sections": names} if names else None
 
 
@@ -156,8 +162,11 @@ def check_injection(info):
 
 
 def check_antidebug(info):
+    # IsDebuggerPresent импортирует почти любая программа на MSVC (56% System32), поэтому
+    # одной такой функции мало: нужна явная проверка чужого отладчика или две разные функции.
     found = _found(info, api.ANTIDEBUG)
-    return {"functions": found} if found else None
+    strong = _found(info, api.ANTIDEBUG_STRONG)
+    return {"functions": found} if strong or len(found) >= 2 else None
 
 
 def check_keylog(info):
@@ -253,7 +262,7 @@ RULES: list[Rule] = [
          "Импортировано не меньше двух функций для записи в память и запуска кода в другом процессе.",
          "Отладчики, антивирусы и средства мониторинга используют те же функции.", check_injection),
     Rule("API_ANTIDEBUG", "Проверка отладчика", "low", "evasion",
-         "Программа проверяет, не запущена ли она под отладчиком.",
+         "Программа проверяет, не запущена ли она под отладчиком: CheckRemoteDebuggerPresent или несколько разных проверок.",
          "Эти функции импортируют стандартные среды выполнения C/C++.", check_antidebug),
     Rule("API_KEYLOG", "API перехвата клавиатуры", "medium", "behavior",
          "Импортированы функции глобального перехвата или опроса клавиш.",

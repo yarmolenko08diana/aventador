@@ -9,6 +9,7 @@ INJECTION = {
     "NtWriteVirtualMemory", "RtlCreateUserThread",
 }
 ANTIDEBUG = {"IsDebuggerPresent", "CheckRemoteDebuggerPresent", "NtQueryInformationProcess"}
+ANTIDEBUG_STRONG = {"CheckRemoteDebuggerPresent"}  # достаточно одной этой функции
 KEYLOG = {"SetWindowsHookEx", "GetAsyncKeyState"}
 DYNLOAD_LOAD = {"LoadLibrary", "LoadLibraryEx", "LdrLoadDll"}
 DYNLOAD_RESOLVE = {"GetProcAddress", "LdrGetProcedureAddress"}

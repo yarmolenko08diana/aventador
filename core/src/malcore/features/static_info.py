@@ -27,7 +27,8 @@ DEBUG_TYPE_REPRO = 16
 _ASCII = re.compile(rb"[\x20-\x7e]{5,}")
 _UTF16 = re.compile(rb"(?:[\x20-\x7e]\x00){5,}")
 _URL = re.compile(r"https?://[^\s\"'<>]{4,}", re.IGNORECASE)
-_IPV4 = re.compile(r"\b(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)\b")
+# (?<![\d.]) и (?!\.?\d): не выхватываем кусок из длинной цепочки чисел вроде OID 1.3.6.1.5.5.7.3.1
+_IPV4 = re.compile(r"(?<![\d.])(?:(?:25[0-5]|2[0-4]\d|1?\d?\d)\.){3}(?:25[0-5]|2[0-4]\d|1?\d?\d)(?!\.?\d)")
 _REGISTRY = re.compile(r"(?:HKEY_[A-Z_]+|Software\\Microsoft\\Windows\\CurrentVersion\\Run\w*)[^\x00]*", re.IGNORECASE)
 
 
@@ -147,6 +148,15 @@ def analyze(data: bytes) -> dict:
     overlay_offset = pe.get_overlay_data_start_offset()
     overlay = data[overlay_offset:] if overlay_offset else b""
     dirs = oh.DATA_DIRECTORY
+    # Строки цифровой подписи (адреса OCSP/CRL центров сертификации, OID) описывают подпись,
+    # а не поведение программы, поэтому для индикаторов строки берём без блока подписи.
+    # В каталоге SECURITY поле VirtualAddress — это смещение в файле, а не RVA.
+    if len(dirs) > SECURITY_DIR and dirs[SECURITY_DIR].Size > 0:
+        off, size = dirs[SECURITY_DIR].VirtualAddress, dirs[SECURITY_DIR].Size
+        if 0 < off < len(data):
+            stripped = data[:off] + b"\0" * min(size, len(data) - off) + data[off + size:]
+            info["strings"] = extract_strings(stripped)
+            info["strings"]["signature_excluded"] = True
     debug_types = sorted({d.struct.Type for d in getattr(pe, "DIRECTORY_ENTRY_DEBUG", [])})
 
     info.update(

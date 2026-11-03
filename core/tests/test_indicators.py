@@ -149,7 +149,9 @@ def test_injection_needs_two_functions():
 
 
 def test_antidebug_keylog_download():
-    assert "API_ANTIDEBUG" in codes(with_imports("IsDebuggerPresent"))
+    assert "API_ANTIDEBUG" not in codes(with_imports("IsDebuggerPresent"))  # есть в каждом CRT
+    assert "API_ANTIDEBUG" in codes(with_imports("CheckRemoteDebuggerPresent"))
+    assert "API_ANTIDEBUG" in codes(with_imports("IsDebuggerPresent", "NtQueryInformationProcess"))
     assert "API_KEYLOG" in codes(with_imports("SetWindowsHookExW"))
     assert "API_DOWNLOAD" in codes(with_imports("URLDownloadToFileA"))
     assert not codes(with_imports("CreateFileW", "ReadFile"))
@@ -226,3 +228,31 @@ def test_fp_report_on_fixtures(capsys):
     assert "Разобрано PE: 25" in out
     assert "PACK_KNOWN_SECTION: самые частые находки" in out
     assert "Ошибки правил" not in out
+
+
+def test_rwx_init_section_of_driver_is_normal():
+    rwx_init = [{"name": "INIT", "raw_size": 512, "entropy": 5.0, "writable": True, "executable": True}]
+    assert "SEC_RWX" not in codes(base_info(sections=rwx_init, subsystem="IMAGE_SUBSYSTEM_NATIVE"))
+    assert "SEC_RWX" in codes(base_info(sections=rwx_init, subsystem="IMAGE_SUBSYSTEM_WINDOWS_GUI"))
+
+
+def test_signature_strings_are_ignored():
+    """Адреса центров сертификации из блока подписи не должны давать STR_NETWORK."""
+    import pefile
+
+    pe = pefile.PE(str(PE / "benign" / "setuptools_cli-64.exe"))
+    body = bytes(pe.write())
+    pe.close()
+    cert = b"\x30\x82" + b"http://ocsp.evil-ca.example0" + b"\x00" * 6 + b"1.3.6.1.5.5.7.3.3" + b"\x00" * 6
+    cert += b"\x00" * (-len(cert) % 8)
+    pe = pefile.PE(data=body + cert)
+    pe.OPTIONAL_HEADER.DATA_DIRECTORY[4].VirtualAddress = len(body)
+    pe.OPTIONAL_HEADER.DATA_DIRECTORY[4].Size = len(cert)
+    signed = bytes(pe.write())
+
+    info = analyze(signed)
+    assert info["has_signature"] and info["strings"].get("signature_excluded")
+    assert info["strings"]["urls"] == [] and info["strings"]["ips"] == []
+    assert "STR_NETWORK" not in codes(info)
+    # тот же текст вне подписи — уже находка
+    assert "STR_NETWORK" in codes(analyze(body + b"http://evil.example.net/a\x00"))

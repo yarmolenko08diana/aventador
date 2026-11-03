@@ -47,3 +47,10 @@ def test_result_is_json_serializable_without_internal_fields():
     view = public_view(analyze((PE / "benign" / "setuptools_gui-64.exe").read_bytes()))
     assert "all_lower" not in view["strings"]
     json.dumps(view)
+
+
+def test_ip_regex_ignores_oid_fragments():
+    from malcore.features.static_info import extract_strings
+
+    ips = extract_strings(b"oid 1.3.6.1.5.5.7.3.1 ver 10.0.22621.1 c2 185.10.20.30 end").get("ips")
+    assert ips == ["185.10.20.30"]
