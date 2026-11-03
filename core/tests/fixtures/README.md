@@ -1,0 +1,39 @@
+# Тестовые файлы
+
+Здесь лежат только **безопасные** файлы. Вредоносных образцов в репозитории нет.
+
+## pe/benign: 17 настоящих Windows PE
+
+Файлы взяты из официальных пакетов PyPI:
+
+- `pip_*.exe`: лаунчеры distlib из пакета pip 26.3 (MIT);
+- `setuptools_*.exe`: лаунчеры из setuptools 69.5.1 (MIT);
+- `psutil_*.pyd`: DLL из psutil для win_amd64 (BSD);
+- `markupsafe_*.pyd`: DLL из MarkupSafe для win32 и win_amd64 (BSD).
+
+## pe/crafted: пограничные случаи
+
+Эти файлы получены из `setuptools_cli-64.exe` правкой отдельных полей заголовка:
+
+| Файл | Что изменено |
+| --- | --- |
+| `align16_code.exe`, `align4.exe`, `rwx_align8192.exe` | флаги выравнивания ALIGN_* и права секции кода (RWX) |
+| `bad_entry.exe` | точка входа за пределами всех секций |
+| `odd_machine.exe` | неизвестный тип машины (0x1234) |
+| `truncated.exe` | файл обрезан до 600 байт |
+| `not_pe.bin` | вообще не PE |
+
+## reference/: эталонные векторы EMBER v2
+
+Векторы посчитаны **оригинальным** `ember/features.py` (elastic/ember, без изменений)
+в Docker-контейнерах:
+
+- `benign_lief0101.npz`: Python 3.6, LIEF 0.10.1;
+- `benign_lief0123.npz` и `crafted_lief0123.npz`: Python 3.11, LIEF 0.12.3, scikit-learn 1.1.3.
+
+На 17 безопасных файлах LIEF 0.10.1 и 0.12.3 дают одинаковые векторы.
+Тест `test_vector_reference.py` проверяет, что наш экстрактор на LIEF 1.x совпадает с обоими эталонами.
+Скрипты для пересчёта лежат в `core/tests/reference_tools/`.
+
+LIEF 0.9.0, на которой изначально считались признаки EMBER v2, сейчас доступна только в исходниках.
+Поэтому прямой сверки с ней нет; это ограничение отмечено в отчёте.

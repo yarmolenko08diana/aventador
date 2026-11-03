@@ -26,3 +26,6 @@ frontend/dist/
 
 # Окружение
 .env
+
+# Безопасные тестовые PE-файлы (см. core/tests/fixtures/README.md)
+!core/tests/fixtures/pe/**
