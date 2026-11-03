@@ -24,7 +24,7 @@ def _train_one(Xtr, ytr, Xva, yva, n_classes, params, fixed, seed, select, log) 
     net = MLPNet(Xtr.shape[1], n_classes, params["hidden"], params["dropout"])
     opt = torch.optim.Adam(net.parameters(), lr=params["lr"], weight_decay=fixed["weight_decay"])
     loss_fn = torch.nn.CrossEntropyLoss(weight=torch.from_numpy(balanced_weights(ytr, n_classes)))
-    Xt, yt = torch.from_numpy(Xtr), torch.from_numpy(ytr)
+    Xt, yt = torch.from_numpy(Xtr), torch.from_numpy(np.array(ytr, dtype=np.int64))  # копия: из pandas массив только для чтения
     rng = np.random.default_rng(seed)
     batch = fixed["batch_size"]
 
@@ -41,7 +41,7 @@ def _train_one(Xtr, ytr, Xva, yva, n_classes, params, fixed, seed, select, log) 
             loss = loss_fn(net(Xt[idx]), yt[idx])
             loss.backward()
             opt.step()
-            total += float(loss) * len(idx)
+            total += loss.item() * len(idx)
         proba = predict_proba(net, Xva)
         score = select(yva, proba)
         log(f"    эпоха {epoch}: loss {total / len(Xtr):.4f}, val {score:.5f}")
