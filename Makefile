@@ -1,4 +1,4 @@
-.PHONY: env venv install db-up db-check db-down test migrate api worker demo frontend-install frontend
+.PHONY: env venv install db-up db-check db-down test migrate api worker demo frontend-install frontend up down logs ps
 
 PY ?= python3
 
@@ -42,3 +42,15 @@ frontend-install: ## поставить пакеты веб-интерфейса
 
 frontend:       ## запустить веб-интерфейс: http://localhost:5173 (API и worker должны работать)
 	cd frontend && npm run dev
+
+up: env         ## вся система в Docker: http://localhost:8080 (нужны обученные модели в artifacts/models)
+	docker compose up -d --build --wait
+
+down:           ## остановить все контейнеры (БД и карантин сохраняются в томах)
+	docker compose down
+
+logs:           ## журналы api и worker
+	docker compose logs -f --tail=100 api worker
+
+ps:             ## состояние контейнеров
+	docker compose ps

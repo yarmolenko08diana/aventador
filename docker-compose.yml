@@ -1,6 +1,34 @@
-# Этап 0: только база данных.
-# Сервисы api, worker и frontend добавляются на этапах 6–7 (раздел 5 ТЗ).
+# Вся система одной командой: make up  →  http://localhost:8080
+# Только база для локальной разработки: make db-up
+#
+# Изоляция (раздел 4 ТЗ):
+# - worker, который разбирает подозрительные файлы, подключён только к внутренней сети без выхода
+#   в интернет и видит лишь базу; карантин он получает только для чтения;
+# - у worker корневая ФС только для чтения, сняты все capabilities, запрещено повышение привилегий,
+#   ограничены память и число процессов; сам разбор ещё и идёт в дочернем процессе с тайм-аутом;
+# - наружу (и только на localhost) открыт один порт веб-интерфейса; API доступен через него.
 name: malscan
+
+x-backend: &backend
+  build:
+    context: .
+    dockerfile: backend/Dockerfile
+  image: malscan-backend
+  env_file: .env
+  environment:
+    DATABASE_URL: postgresql+psycopg://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
+    QUARANTINE_DIR: /data/quarantine
+    MODELS_DIR: /models
+    DEMO_DIR: /demo
+  volumes:
+    - quarantine:/data/quarantine
+    # Модели и векторы тестовой выборки готовятся на этапах 4–5 и подключаются только для чтения
+    - ./artifacts/models:/models:ro
+    - ./data/processed/demo:/demo:ro
+  security_opt:
+    - no-new-privileges:true
+  cap_drop: [ALL]
+  restart: unless-stopped
 
 services:
   db:
@@ -8,15 +36,70 @@ services:
     restart: unless-stopped
     env_file: .env
     ports:
-      # Порт открыт только на localhost, снаружи БД не видна
+      # Порт открыт только на localhost, снаружи БД не видна (нужен для make api / make worker)
       - "127.0.0.1:${POSTGRES_PORT:-5433}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+    networks: [default, internal]
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 5s
       timeout: 3s
       retries: 10
 
+  # Миграции схемы БД: запускается, применяет alembic и завершается
+  migrate:
+    <<: *backend
+    command: ["alembic", "upgrade", "head"]
+    restart: "no"
+    networks: [internal]
+    depends_on:
+      db: {condition: service_healthy}
+
+  api:
+    <<: *backend
+    networks: [default, internal]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 20s
+
+  worker:
+    <<: *backend
+    command: ["python", "-m", "worker.main"]
+    networks: [internal]          # только база, интернета нет
+    read_only: true               # корневая ФС только для чтения
+    tmpfs:
+      - /tmp:size=256m,noexec,nosuid
+    volumes:
+      - quarantine:/data/quarantine:ro   # файлы только читаются, запускать их нечем и негде
+      - ./artifacts/models:/models:ro
+      - ./data/processed/demo:/demo:ro
+    mem_limit: 3g
+    pids_limit: 256
+    depends_on:
+      # api первым подключает том карантина на запись, и Docker выставляет на нём владельца
+      api: {condition: service_healthy}
+
+  frontend:
+    build: ./frontend
+    image: malscan-frontend
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${WEB_PORT:-8080}:80"
+    networks: [default]
+    depends_on:
+      api: {condition: service_healthy}
+
+networks:
+  default: {}
+  internal:
+    internal: true   # сеть без выхода наружу
+
 volumes:
   pgdata:
+  quarantine:

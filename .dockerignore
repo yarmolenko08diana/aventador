@@ -1,0 +1,15 @@
+# В образы попадает только код. Данные, модели и карантин подключаются томами (docker-compose.yml).
+.git
+.env
+data
+artifacts
+quarantine
+**/.venv
+**/node_modules
+**/__pycache__
+**/*.pyc
+**/.pytest_cache
+**/tests
+!backend/ca.crt
+ml
+frontend/dist
