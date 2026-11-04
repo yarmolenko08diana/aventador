@@ -1,4 +1,4 @@
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
 import { useNavigate } from "react-router-dom";
@@ -6,12 +6,6 @@ import { useNavigate } from "react-router-dom";
 import { api } from "../api/client";
 import type { UploadResult } from "../api/types";
 import { Card, ErrorBox } from "../components/ui";
-
-const GROUP_TITLE = {
-  benign: "Безопасные",
-  known_family: "Известное семейство",
-  unknown_family: "Семейство, которого нет в классификаторе",
-} as const;
 
 export default function Upload() {
   const navigate = useNavigate();
@@ -21,15 +15,10 @@ export default function Upload() {
     mutationFn: api.upload,
     onSuccess: (res) => (res.duplicate ? setDuplicate(res) : navigate(`/analyses/${res.analysis_id}`)),
   });
-  const fromDataset = useMutation({
-    mutationFn: api.fromDataset,
-    onSuccess: (res) => navigate(`/analyses/${res.analysis_id}`),
-  });
   const rerun = useMutation({
     mutationFn: api.rerun,
     onSuccess: (res) => navigate(`/analyses/${res.analysis_id}`),
   });
-  const examples = useQuery({ queryKey: ["examples"], queryFn: () => api.datasetExamples(4) });
 
   const onDrop = useCallback(
     (files: File[]) => {
@@ -70,41 +59,6 @@ export default function Upload() {
             </button>
           </div>
         )}
-      </Card>
-
-      <Card title="Образец из тестовой выборки BODMAS">
-        <p className="mb-4 text-sm text-slate-600">
-          Готовый вектор признаков из тестовой части датасета, которую модели не видели при обучении. Самого файла нет,
-          поэтому индикаторы не строятся, зато известен правильный ответ и его можно сравнить с прогнозом.
-        </p>
-        {examples.isError && <ErrorBox error={examples.error} />}
-        {fromDataset.isError && <div className="mb-3"><ErrorBox error={fromDataset.error} /></div>}
-        <div className="grid gap-4 md:grid-cols-3">
-          {(["benign", "known_family", "unknown_family"] as const).map((group) => (
-            <div key={group}>
-              <h3 className="mb-2 text-sm font-semibold text-slate-700">{GROUP_TITLE[group]}</h3>
-              <ul className="space-y-1">
-                {examples.data
-                  ?.filter((e) => e.group === group)
-                  .map((e) => (
-                    <li key={e.sha256}>
-                      <button
-                        className="w-full rounded border border-slate-200 px-2 py-1.5 text-left hover:bg-slate-50 disabled:opacity-50"
-                        disabled={fromDataset.isPending}
-                        onClick={() => fromDataset.mutate(e.sha256)}
-                      >
-                        <span className="mono block text-slate-500">{e.sha256.slice(0, 24)}…</span>
-                        {e.family && <span className="text-xs text-slate-700">{e.family}</span>}
-                      </button>
-                    </li>
-                  ))}
-                {examples.data && !examples.data.some((e) => e.group === group) && (
-                  <li className="text-sm text-slate-500">В тестовой выборке таких нет.</li>
-                )}
-              </ul>
-            </div>
-          ))}
-        </div>
       </Card>
     </div>
   );

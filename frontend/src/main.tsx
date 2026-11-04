@@ -5,11 +5,9 @@ import { BrowserRouter, Route, Routes } from "react-router-dom";
 
 import Layout from "./components/Layout";
 import "./index.css";
-import Alerts from "./pages/Alerts";
 import AnalysisDetail from "./pages/AnalysisDetail";
 import Dashboard from "./pages/Dashboard";
 import History from "./pages/History";
-import Models from "./pages/Models";
 import Upload from "./pages/Upload";
 
 const queryClient = new QueryClient({ defaultOptions: { queries: { retry: 1, refetchOnWindowFocus: false } } });
@@ -24,8 +22,6 @@ createRoot(document.getElementById("root")!).render(
             <Route path="upload" element={<Upload />} />
             <Route path="analyses/:id" element={<AnalysisDetail />} />
             <Route path="history" element={<History />} />
-            <Route path="models" element={<Models />} />
-            <Route path="alerts" element={<Alerts />} />
           </Route>
         </Routes>
       </BrowserRouter>

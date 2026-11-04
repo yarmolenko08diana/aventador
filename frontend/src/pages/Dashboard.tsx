@@ -42,18 +42,13 @@ export default function Dashboard() {
         <Link to="/upload" className="btn">Загрузить файл</Link>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Анализов всего" value={s?.total_analyses ?? "…"} hint={s ? `файлов: ${s.total_samples}` : undefined} />
         <Stat label="Вредоносных" value={s?.by_verdict.malicious ?? "…"} hint={s ? `подозрительных: ${s.by_verdict.suspicious}` : undefined} />
         <Stat label="Семейств обнаружено" value={s?.families_detected ?? "…"} hint={s ? `не определено: ${s.family_unknown}` : undefined} />
-        <Stat
-          label="Среднее время анализа"
-          value={s?.avg_duration_ms ? `${(s.avg_duration_ms / 1000).toFixed(1)} с` : "—"}
-          hint={s?.by_status.failed ? `с ошибкой: ${s.by_status.failed}` : undefined}
-        />
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-2">
         <Card title="Вердикты">
           {s && s.total_analyses > 0 ? (
             <Doughnut
@@ -78,21 +73,6 @@ export default function Dashboard() {
               options={{ indexAxis: "y", plugins: { legend: { display: false } }, scales: { x: { ticks: { precision: 0 } } } }}
             />
           ) : <Empty>Семейства появятся после анализа вредоносных образцов.</Empty>}
-        </Card>
-        <Card title="По дням">
-          {s && s.timeline.length > 0 ? (
-            <Bar
-              data={{
-                labels: s.timeline.map((d) => new Date(d.date).toLocaleDateString("ru-RU")),
-                datasets: (["clean", "suspicious", "malicious"] as const).map((v) => ({
-                  label: { clean: "Безопасные", suspicious: "Подозрительные", malicious: "Вредоносные" }[v],
-                  data: s.timeline.map((d) => d[v] ?? 0),
-                  backgroundColor: COLORS[v],
-                })),
-              }}
-              options={{ plugins: { legend: { position: "bottom" } }, scales: { x: { stacked: true }, y: { stacked: true, ticks: { precision: 0 } } } }}
-            />
-          ) : <Empty>Нет данных.</Empty>}
         </Card>
       </div>
 
