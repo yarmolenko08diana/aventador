@@ -79,7 +79,7 @@ services:
       - quarantine:/data/quarantine:ro   # файлы только читаются, запускать их нечем и негде
       - ./artifacts/models:/models:ro
       - ./data/processed/demo:/demo:ro
-    mem_limit: 3g
+    mem_limit: 6g          # все 12 моделей в памяти; RF на полном BODMAS крупный
     pids_limit: 256
     depends_on:
       # api первым подключает том карантина на запись, и Docker выставляет на нём владельца
