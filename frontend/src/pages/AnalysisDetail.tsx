@@ -51,6 +51,8 @@ export default function AnalysisDetail() {
         </div>
       </div>
 
+      {rerun.isError && <ErrorBox error={rerun.error} />}
+
       {!finished(a) && (
         <Card>
           <p className="text-sm text-slate-600">

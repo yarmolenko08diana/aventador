@@ -74,6 +74,24 @@ def test_duplicate_returns_previous_analysis_and_rerun_creates_new(client, worke
     assert client.get(f"/api/v1/analyses/{new_id}").json()["status"] == "done"
 
 
+def test_rerun_without_quarantine_file_is_409_and_reupload_restores_it(client, worker, benign_exe):
+    # Запись в БД есть, а файла в карантине нет (например, база осталась от другой установки системы)
+    first = upload(client, benign_exe).json()
+    stored = Path(os.environ["QUARANTINE_DIR"]) / f"{first['sha256']}.bin"
+    stored.unlink()
+    r = client.post(f"/api/v1/analyses/{first['analysis_id']}/rerun")
+    assert r.status_code == 409 and "карантин" in r.json()["detail"]
+
+    # Повторная загрузка того же файла узнаёт дубликат и возвращает файл в карантин
+    again = upload(client, benign_exe).json()
+    assert again["duplicate"] is True and stored.exists()
+    assert not stored.stat().st_mode & stat.S_IWUSR
+    r = client.post(f"/api/v1/analyses/{again['analysis_id']}/rerun")
+    assert r.status_code == 202
+    worker.run_once()
+    assert client.get(f"/api/v1/analyses/{r.json()['analysis_id']}").json()["status"] == "done"
+
+
 def test_not_pe_is_rejected(client):
     r = upload(client, FIXTURES / "crafted" / "not_pe.bin")
     assert r.status_code == 415

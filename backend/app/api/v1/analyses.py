@@ -8,6 +8,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, or_, select
 from sqlalchemy.orm import Session, joinedload
 
+from app.config import get_settings
 from app.db.models import Analysis, Sample
 from app.db.session import get_db
 from app.schemas.api import (
@@ -19,7 +20,7 @@ from app.schemas.api import (
     StaticOut,
     UploadOut,
 )
-from app.services.upload import queue_rerun
+from app.services.upload import UploadError, queue_rerun
 
 router = APIRouter(prefix="/analyses", tags=["Анализы"])
 
@@ -108,5 +109,8 @@ def read_predictions(analysis_id: int, db: Session = Depends(get_db)) -> list[Pr
 @router.post("/{analysis_id}/rerun", status_code=202, response_model=UploadOut)
 def rerun(analysis_id: int, db: Session = Depends(get_db)) -> UploadOut:
     a = get_analysis(db, analysis_id)
-    new = queue_rerun(db, a)
+    try:
+        new = queue_rerun(db, a, get_settings().quarantine_dir)
+    except UploadError as exc:
+        raise HTTPException(exc.status_code, exc.message) from exc
     return UploadOut(analysis_id=new.id, sha256=a.sample.sha256, duplicate=False, status=new.status)

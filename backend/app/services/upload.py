@@ -82,15 +82,17 @@ def accept_upload(db: Session, stream: BinaryIO, filename: str | None, quarantin
     try:
         check_pe_header(head, size)
         sha = hashes["sha256"]
+        # Файл кладём в карантин и для дубликата: запись в БД могла остаться от другого карантина
+        # (например, от локального запуска до Docker), и без файла повторный анализ невозможен
+        final = quarantine / f"{sha}.bin"
+        if not final.exists():
+            os.replace(tmp, final)
+            os.chmod(final, 0o444)  # только чтение, без права исполнения
         sample = db.scalar(select(Sample).where(Sample.sha256 == sha))
         if sample is not None:
             last = db.scalar(select(Analysis).where(Analysis.sample_id == sample.id).order_by(Analysis.id.desc()))
             if last is not None:
                 return UploadResult(last.id, sample.id, sha, True, last.status)
-        final = quarantine / f"{sha}.bin"
-        if not final.exists():
-            os.replace(tmp, final)
-            os.chmod(final, 0o444)  # только чтение, без права исполнения
         if sample is None:
             sample = Sample(sha256=sha, md5=hashes["md5"], sha1=hashes["sha1"], size_bytes=size,
                             original_name=(filename or "")[:255] or None, source="upload", storage_path=final.name)
@@ -104,7 +106,11 @@ def accept_upload(db: Session, stream: BinaryIO, filename: str | None, quarantin
         tmp.unlink(missing_ok=True)
 
 
-def queue_rerun(db: Session, analysis: Analysis) -> Analysis:
+def queue_rerun(db: Session, analysis: Analysis, quarantine: Path | None = None) -> Analysis:
+    sample = analysis.sample
+    if quarantine is not None and sample.source == "upload" and not (quarantine / f"{sample.sha256}.bin").exists():
+        raise UploadError(409, "Файла нет в карантине (он был загружен в другую установку системы). "
+                               "Загрузите файл заново, затем повторите анализ.")
     new = Analysis(sample_id=analysis.sample_id, status="queued")
     db.add(new)
     db.commit()
